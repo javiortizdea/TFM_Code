@@ -238,15 +238,15 @@ def get_number_of_valleys_per_burst(valleys_df, clean = False):
 def get_number_of_peaks_per_burst(peaks_df):
     interburst_mask = (peaks_df["Type"] == "Interburst") | (((peaks_df["Min time diff"] == 0) | (peaks_df["Min time diff"].isna())) & (peaks_df["Time"] < 1000))
     peaks_df["Group"] = interburst_mask.cumsum()
-    peaks_df["Number of peaks"] = np.nan
-    peaks_df.loc[peaks_df["Type"] == "Interburst", "Number of peaks"] = 0
-    peak_counts = peaks_df[peaks_df["Type"] == "Peak"].groupby("Group").size()
+    peaks_df["Number of spikes"] = np.nan
+    peaks_df.loc[peaks_df["Type"] == "Interburst", "Number of spikes"] = 0
+    peak_counts = peaks_df[peaks_df["Type"] == "Spike"].groupby("Group").size()
     peak_counts = peaks_df.groupby("Group").size() - 1
-    peaks_df.loc[interburst_mask, 'Number of peaks'] = peaks_df.loc[interburst_mask, 'Group'].map(peak_counts)
-    peaks_df.loc[(peaks_df["Type"] == "Interburst") & (peaks_df["Interburst time"].isna()), "Number of peaks"] = np.nan
-    peaks_df.loc[peaks_df["Type"] == "Peak", "Number of peaks"] = np.nan
+    peaks_df.loc[interburst_mask, 'Number of spikes'] = peaks_df.loc[interburst_mask, 'Group'].map(peak_counts)
+    peaks_df.loc[(peaks_df["Type"] == "Interburst") & (peaks_df["Interburst time"].isna()), "Number of spikes"] = np.nan
+    peaks_df.loc[peaks_df["Type"] == "Spike", "Number of spikes"] = np.nan
     peaks_df.drop("Group", axis = 1, inplace = True)
-    peaks_df.drop(peaks_df[peaks_df["Number of peaks"] == 0].index, axis = 0, inplace = True)
+    peaks_df.drop(peaks_df[peaks_df["Number of spikes"] == 0].index, axis = 0, inplace = True)
     return
 
 
@@ -297,12 +297,12 @@ def get_peaks_df(x : np.ndarray, tiempo : np.ndarray, valleys_df : np.ndarray) -
         "Time" : pd.Series(tiempo[time_indices]),
         "x" : pd.Series(x[neuron_indices, time_indices])
     })
-    peaks_df.loc[:, "Type"] = "Peak"
+    peaks_df.loc[:, "Type"] = "Spike"
 
     # Localize the burst intervals
     peaks_df = pd.concat([peaks_df, valleys_df[valleys_df["Type"] == "Interburst"]], ignore_index=True).sort_values(by = ["Neuron", "Time index"]).reset_index().loc[:, ["Neuron", "Time index", "Time", "x", "Type", "Interburst time"]]
     min_possible_peak_value = valleys_df.loc[valleys_df["Type"] == "Intraburst", "x"].min()
-    peaks_df.drop(peaks_df.loc[(peaks_df["Type"] == "Peak") & (peaks_df["x"] <= min_possible_peak_value)].index, axis = 0, inplace = True)
+    peaks_df.drop(peaks_df.loc[(peaks_df["Type"] == "Spike") & (peaks_df["x"] <= min_possible_peak_value)].index, axis = 0, inplace = True)
 
     get_shortest_time_periods(peaks_df)
     get_number_of_peaks_per_burst(peaks_df)
